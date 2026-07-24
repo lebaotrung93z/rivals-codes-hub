@@ -79,17 +79,23 @@ export const getTierList = unstable_cache(
 );
 
 export async function getHeroBySlug(slug: string) {
-  return prisma.hero.findFirst({
-    where: { slug, game: { slug: "marvel-rivals" } },
-    include: {
-      game: true,
-      tierEntries: {
-        include: { tierList: true },
-        orderBy: { tierList: { updatedAt: "desc" } },
-        take: 1,
-      },
+  return unstable_cache(
+    async () => {
+      return prisma.hero.findFirst({
+        where: { slug, game: { slug: "marvel-rivals" } },
+        include: {
+          game: { select: { slug: true, name: true } },
+          tierEntries: {
+            include: { tierList: { select: { id: true, updatedAt: true } } },
+            orderBy: { tierList: { updatedAt: "desc" } },
+            take: 1,
+          },
+        },
+      });
     },
-  });
+    ["hero-by-slug", slug],
+    { revalidate: REVALIDATE_SECONDS, tags: ["heroes", `hero-${slug}`] },
+  )();
 }
 
 export const getAllHeroes = unstable_cache(
@@ -113,18 +119,40 @@ export const getAllHeroes = unstable_cache(
 );
 
 export async function getPatches() {
-  return prisma.patch.findMany({
-    where: { game: { slug: "marvel-rivals" } },
-    orderBy: { publishedAt: "desc" },
-    include: { game: true },
-  });
+  return unstable_cache(
+    async () => {
+      return prisma.patch.findMany({
+        where: { game: { slug: "marvel-rivals" } },
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          version: true,
+          summary: true,
+          publishedAt: true,
+          updatedAt: true,
+          sourceName: true,
+          rankedImpact: true,
+        },
+      });
+    },
+    ["patches-index"],
+    { revalidate: REVALIDATE_SECONDS, tags: ["patches"] },
+  )();
 }
 
 export async function getPatchBySlug(slug: string) {
-  return prisma.patch.findFirst({
-    where: { slug, game: { slug: "marvel-rivals" } },
-    include: { game: true },
-  });
+  return unstable_cache(
+    async () => {
+      return prisma.patch.findFirst({
+        where: { slug, game: { slug: "marvel-rivals" } },
+        include: { game: { select: { slug: true, name: true } } },
+      });
+    },
+    ["patch-by-slug", slug],
+    { revalidate: REVALIDATE_SECONDS, tags: ["patches", `patch-${slug}`] },
+  )();
 }
 
 /** Codes hub: light payload — preview rows only, no full expired archive. */
@@ -288,8 +316,104 @@ export async function getGuides() {
 }
 
 export async function getGuideBySlug(slug: string) {
-  return prisma.guide.findUnique({
-    where: { slug },
-    include: { game: true },
-  });
+  return unstable_cache(
+    async () => {
+      return prisma.guide.findUnique({
+        where: { slug },
+        include: { game: { select: { id: true, slug: true, name: true } } },
+      });
+    },
+    ["guide-by-slug", slug],
+    { revalidate: REVALIDATE_SECONDS, tags: ["guides", `guide-${slug}`] },
+  )();
+}
+
+/** One cached round-trip for guide detail pages (avoids N+1 body fetches). */
+export async function getGuidePageData(slug: string) {
+  return unstable_cache(
+    async () => {
+      const guide = await prisma.guide.findUnique({
+        where: { slug },
+        include: { game: { select: { id: true, slug: true, name: true } } },
+      });
+      if (!guide) return null;
+
+      const heroSlug = guide.slug.endsWith("-how-to-play")
+        ? guide.slug.slice(0, -"-how-to-play".length)
+        : null;
+
+      const [hero, navGuides, related] = await Promise.all([
+        heroSlug
+          ? prisma.hero.findFirst({
+              where: { slug: heroSlug, game: { slug: "marvel-rivals" } },
+              select: {
+                slug: true,
+                name: true,
+                role: true,
+                imageUrl: true,
+                tierEntries: { take: 1, select: { tier: true }, orderBy: { sortOrder: "asc" } },
+              },
+            })
+          : Promise.resolve(null),
+        heroSlug
+          ? prisma.guide.findMany({
+              where: {
+                gameId: guide.gameId ?? undefined,
+                slug: { endsWith: "-how-to-play" },
+              },
+              orderBy: { title: "asc" },
+              select: { id: true, slug: true, title: true },
+            })
+          : prisma.guide.findMany({
+              where: {
+                gameId: guide.gameId ?? undefined,
+                level: guide.level,
+                NOT: { slug: { endsWith: "-how-to-play" } },
+              },
+              orderBy: { sortOrder: "asc" },
+              select: { id: true, slug: true, title: true, sortOrder: true },
+            }),
+        heroSlug
+          ? prisma.guide.findMany({
+              where: {
+                gameId: guide.gameId ?? undefined,
+                slug: { endsWith: "-how-to-play" },
+                NOT: { slug: guide.slug },
+              },
+              orderBy: { title: "asc" },
+              take: 8,
+              select: { id: true, slug: true, title: true },
+            })
+          : prisma.guide.findMany({
+              where: {
+                gameId: guide.gameId ?? undefined,
+                id: { not: guide.id },
+                level: guide.level,
+                NOT: { slug: { endsWith: "-how-to-play" } },
+              },
+              orderBy: { sortOrder: "asc" },
+              take: 8,
+              select: { id: true, slug: true, title: true },
+            }),
+      ]);
+
+      const idx = navGuides.findIndex((g) => g.id === guide.id);
+      const prev = idx > 0 ? navGuides[idx - 1] : null;
+      const next = idx >= 0 && idx < navGuides.length - 1 ? navGuides[idx + 1] : null;
+
+      return { guide, hero, heroSlug, related, prev, next };
+    },
+    ["guide-page", slug],
+    { revalidate: REVALIDATE_SECONDS, tags: ["guides", `guide-${slug}`] },
+  )();
+}
+
+export async function getHeroBySlugCached(slug: string) {
+  return getHeroBySlug(slug);
+}
+
+export const getPatchesCached = getPatches;
+
+export async function getPatchBySlugCached(slug: string) {
+  return getPatchBySlug(slug);
 }

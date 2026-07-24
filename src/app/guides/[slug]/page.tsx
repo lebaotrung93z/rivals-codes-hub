@@ -4,12 +4,12 @@ import { notFound } from "next/navigation";
 import { AdUnit } from "@/components/AdSense";
 import { LastUpdated, PageHero } from "@/components/Content";
 import { HeroAvatar } from "@/components/HeroAvatar";
-import { prisma } from "@/lib/db";
 import { heroSlugFromGuideSlug } from "@/lib/guides";
-import { getGuideBySlug } from "@/lib/queries";
+import { getGuidePageData } from "@/lib/queries";
 import { absoluteUrl, formatDate, roleLabel } from "@/lib/site";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -50,7 +50,6 @@ function renderGuideBody(body: string) {
         </ol>
       );
     }
-    // Mixed block: heading line + list lines
     const lines = block.split("\n");
     if (lines[0]?.startsWith("### ") || lines.some((l) => l.startsWith("- "))) {
       return (
@@ -113,17 +112,11 @@ function formatInline(text: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const guide = await getGuideBySlug(slug);
-  if (!guide) return { title: "Guide not found" };
-
-  const heroSlug = heroSlugFromGuideSlug(guide.slug);
-  const hero = heroSlug
-    ? await prisma.hero.findFirst({
-        where: { slug: heroSlug, game: { slug: "marvel-rivals" } },
-        select: { imageUrl: true },
-      })
-    : null;
-  const image = hero?.imageUrl || (heroSlug ? `/images/heroes/${heroSlug}.webp` : undefined);
+  const data = await getGuidePageData(slug);
+  if (!data) return { title: "Guide not found" };
+  const { guide, hero, heroSlug } = data;
+  const image =
+    hero?.imageUrl || (heroSlug ? `/images/heroes/${heroSlug}.webp` : undefined);
 
   return {
     title: guide.title,
@@ -138,71 +131,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+export async function generateStaticParams() {
+  return [];
+}
+
 export default async function GuidePage({ params }: Props) {
   const { slug } = await params;
-  const guide = await getGuideBySlug(slug);
-  if (!guide) notFound();
+  const data = await getGuidePageData(slug);
+  if (!data) notFound();
 
-  const heroSlug = heroSlugFromGuideSlug(guide.slug);
-  const hero = heroSlug
-    ? await prisma.hero.findFirst({
-        where: { slug: heroSlug, game: { slug: "marvel-rivals" } },
-        select: {
-          slug: true,
-          name: true,
-          role: true,
-          imageUrl: true,
-          tierEntries: { take: 1, select: { tier: true } },
-        },
-      })
-    : null;
-
-  const pathGuides = await prisma.guide.findMany({
-    where: {
-      gameId: guide.gameId,
-      level: guide.level,
-      NOT: { slug: { endsWith: "-how-to-play" } },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  const relatedHeroGuides = hero
-    ? await prisma.guide.findMany({
-        where: {
-          gameId: guide.gameId,
-          slug: { endsWith: "-how-to-play" },
-          NOT: { slug: guide.slug },
-        },
-        orderBy: { title: "asc" },
-        take: 8,
-      })
-    : [];
-
-  const pathForNav = hero
-    ? await prisma.guide.findMany({
-        where: { gameId: guide.gameId, slug: { endsWith: "-how-to-play" } },
-        orderBy: { title: "asc" },
-      })
-    : pathGuides;
-
-  const idx = pathForNav.findIndex((g) => g.id === guide.id);
-  const prev = idx > 0 ? pathForNav[idx - 1] : null;
-  const next = idx >= 0 && idx < pathForNav.length - 1 ? pathForNav[idx + 1] : null;
-
-  const related =
-    relatedHeroGuides.length > 0
-      ? relatedHeroGuides
-      : await prisma.guide.findMany({
-          where: {
-            gameId: guide.gameId,
-            id: { not: guide.id },
-            level: guide.level,
-            NOT: { slug: { endsWith: "-how-to-play" } },
-          },
-          orderBy: { sortOrder: "asc" },
-          take: 8,
-        });
-
+  const { guide, hero, heroSlug, related, prev, next } = data;
   const sections = (guide.body.match(/^## /gm) ?? []).length;
   const wordCount = guide.body.split(/\s+/).filter(Boolean).length;
   const levelLabel =
@@ -243,12 +181,13 @@ export default async function GuidePage({ params }: Props) {
 
       <div className="mb-6 flex flex-wrap items-start gap-5">
         {hero ? (
-          <Link href={`/marvel-rivals/heroes/${hero.slug}`} className="shrink-0">
+          <Link href={`/marvel-rivals/heroes/${hero.slug}`} prefetch={false} className="shrink-0">
             <HeroAvatar
               name={hero.name}
               slug={hero.slug}
               imageUrl={hero.imageUrl}
               size={112}
+              priority
             />
           </Link>
         ) : null}
@@ -258,18 +197,21 @@ export default async function GuidePage({ params }: Props) {
             <div className="mt-3 flex flex-wrap gap-4">
               <Link
                 href={`/marvel-rivals/heroes/${hero.slug}`}
+                prefetch={false}
                 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--neon-cyan)]"
               >
                 {hero.name} hero page →
               </Link>
               <Link
                 href="/marvel-rivals/tier-list"
+                prefetch={false}
                 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--neon-cyan)]"
               >
                 Tier list →
               </Link>
               <Link
                 href="/guides#hero-guides"
+                prefetch={false}
                 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--neon-cyan)]"
               >
                 All hero guides →
@@ -291,14 +233,14 @@ export default async function GuidePage({ params }: Props) {
           <div className="prose-guide space-y-4">{renderGuideBody(guide.body)}</div>
           <div className="flex flex-wrap justify-between gap-3 border-t border-[var(--line)] pt-6">
             {prev ? (
-              <Link href={`/guides/${prev.slug}`} className="text-sm text-[var(--neon-cyan)]">
+              <Link href={`/guides/${prev.slug}`} prefetch={false} className="text-sm text-[var(--neon-cyan)]">
                 ← Previous: {prev.title.replace(/ Guide:.*/, "")}
               </Link>
             ) : (
               <span />
             )}
             {next ? (
-              <Link href={`/guides/${next.slug}`} className="text-sm text-[var(--neon-cyan)]">
+              <Link href={`/guides/${next.slug}`} prefetch={false} className="text-sm text-[var(--neon-cyan)]">
                 Next: {next.title.replace(/ Guide:.*/, "")} →
               </Link>
             ) : null}
@@ -309,18 +251,14 @@ export default async function GuidePage({ params }: Props) {
           {hero ? (
             <div className="neon-border bg-[rgba(18,18,26,0.85)] p-4">
               <div className="flex items-center gap-3">
-                <HeroAvatar
-                  name={hero.name}
-                  slug={hero.slug}
-                  imageUrl={hero.imageUrl}
-                  size={48}
-                />
+                <HeroAvatar name={hero.name} slug={hero.slug} imageUrl={hero.imageUrl} size={48} />
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--neon-pink)]">
                     Hero
                   </p>
                   <Link
                     href={`/marvel-rivals/heroes/${hero.slug}`}
+                    prefetch={false}
                     className="font-display text-lg text-white hover:text-[var(--neon-cyan)]"
                   >
                     {hero.name}
@@ -329,6 +267,7 @@ export default async function GuidePage({ params }: Props) {
               </div>
               <Link
                 href={`/marvel-rivals/heroes/${hero.slug}`}
+                prefetch={false}
                 className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--neon-cyan)]"
               >
                 Open hero page →
@@ -345,14 +284,11 @@ export default async function GuidePage({ params }: Props) {
                 return (
                   <li key={item.id} className="flex items-center gap-2">
                     {relatedHeroSlug ? (
-                      <HeroAvatar
-                        name={item.title}
-                        slug={relatedHeroSlug}
-                        size={28}
-                      />
+                      <HeroAvatar name={item.title} slug={relatedHeroSlug} size={28} />
                     ) : null}
                     <Link
                       href={`/guides/${item.slug}`}
+                      prefetch={false}
                       className="text-sm text-[var(--neon-cyan)] hover:underline"
                     >
                       {item.title.replace(/ Guide:.*/, "")}
@@ -362,13 +298,13 @@ export default async function GuidePage({ params }: Props) {
               })}
             </ul>
           </div>
-          <Link href="/guides" className="text-sm text-[var(--neon-cyan)]">
+          <Link href="/guides" prefetch={false} className="text-sm text-[var(--neon-cyan)]">
             Full guides hub
           </Link>
         </aside>
       </div>
       <p className="mt-8 text-sm">
-        <Link href="/guides" className="text-[var(--neon-cyan)]">
+        <Link href="/guides" prefetch={false} className="text-[var(--neon-cyan)]">
           ← All guides
         </Link>
       </p>
