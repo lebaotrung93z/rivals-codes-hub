@@ -5,7 +5,7 @@ import { LastUpdated, PageHero } from "@/components/Content";
 import { getPatches } from "@/lib/queries";
 import { formatDate } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Marvel Rivals Patch Notes",

@@ -7,7 +7,7 @@ import { LastUpdated, PageHero } from "@/components/Content";
 import { getAllHeroes, getHeroBySlug } from "@/lib/queries";
 import { absoluteUrl, roleLabel } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type Props = { params: Promise<{ slug: string }> };
 

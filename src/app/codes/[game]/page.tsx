@@ -1,15 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { RedeemCode } from "@prisma/client";
+import type { CodeStatus } from "@prisma/client";
 import { AdUnit } from "@/components/AdSense";
 import { LastUpdated, PageHero, StatusBadge } from "@/components/Content";
 import { getCodeGames, getCodesForGame } from "@/lib/queries";
 import { absoluteUrl, formatDate } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type Props = { params: Promise<{ game: string }> };
+
+type CodeRow = {
+  id: string;
+  code: string;
+  status: CodeStatus;
+  rewards: string;
+  firstSeenAt: Date;
+  lastCheckedAt: Date;
+  expiresAt: Date | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+};
 
 const allowed = new Set(["genshin-impact", "honkai-star-rail", "wuthering-waves"]);
 
@@ -47,7 +59,7 @@ export default async function GameCodesPage({ params }: Props) {
   const active = game.codes.filter((c) => c.status === "active");
   const unconfirmed = game.codes.filter((c) => c.status === "unconfirmed");
   const expired = game.codes.filter((c) => c.status === "expired");
-  const latest = game.codes[0]?.lastCheckedAt ?? game.updatedAt;
+  const latest = game.codes[0]?.lastCheckedAt ?? new Date();
 
   const howToLd = {
     "@context": "https://schema.org",
@@ -104,7 +116,7 @@ export default async function GameCodesPage({ params }: Props) {
     rows,
   }: {
     title: string;
-    rows: RedeemCode[];
+    rows: CodeRow[];
   }) {
     return (
       <section className="mt-8">
@@ -129,12 +141,7 @@ export default async function GameCodesPage({ params }: Props) {
                       <StatusBadge status={code.status} />
                     </td>
                     <td className="py-3 pr-3 font-mono text-[var(--ink)]">{code.code}</td>
-                    <td className="py-3 pr-3 text-[var(--muted)]">
-                      {code.rewards}
-                      {code.needsReview ? (
-                        <span className="mt-1 block text-xs text-amber-800">Needs review</span>
-                      ) : null}
-                    </td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{code.rewards}</td>
                     <td className="py-3 text-[var(--muted)]">{formatDate(code.lastCheckedAt)}</td>
                   </tr>
                 ))}

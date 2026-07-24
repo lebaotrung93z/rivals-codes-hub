@@ -6,7 +6,7 @@ import { HeroAvatar } from "@/components/HeroAvatar";
 import { getTierList } from "@/lib/queries";
 import { roleLabel } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Marvel Rivals Tier List",
@@ -53,11 +53,12 @@ export default async function TierListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {group.entries.map((entry) => (
+                    {group.entries.map((entry, idx) => (
                       <tr key={entry.id} className="border-b border-[var(--line)] align-middle">
                         <td className="py-3 pr-3">
                           <Link
                             href={`/marvel-rivals/heroes/${entry.hero.slug}`}
+                            prefetch={false}
                             className="inline-flex items-center gap-3 font-medium text-[var(--neon-cyan)] hover:underline"
                           >
                             <HeroAvatar
@@ -65,6 +66,7 @@ export default async function TierListPage() {
                               slug={entry.hero.slug}
                               imageUrl={entry.hero.imageUrl}
                               size={44}
+                              priority={idx < 4 && group.tier === "S"}
                             />
                             <span>{entry.hero.name}</span>
                           </Link>

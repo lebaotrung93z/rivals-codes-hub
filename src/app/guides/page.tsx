@@ -3,11 +3,11 @@ import Link from "next/link";
 import { AdUnit } from "@/components/AdSense";
 import { LastUpdated, PageHero } from "@/components/Content";
 import { HeroAvatar } from "@/components/HeroAvatar";
-import { prisma } from "@/lib/db";
 import { heroSlugFromGuideSlug } from "@/lib/guides";
+import { getGuidesIndex } from "@/lib/queries";
 import { formatDate, roleLabel } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "How to Play Guides · Beginner to Advanced",
@@ -35,17 +35,7 @@ const LEVELS = [
 ] as const;
 
 export default async function GuidesIndexPage() {
-  const [guides, heroes] = await Promise.all([
-    prisma.guide.findMany({
-      orderBy: [{ level: "asc" }, { sortOrder: "asc" }, { title: "asc" }],
-      include: { game: true },
-    }),
-    prisma.hero.findMany({
-      where: { game: { slug: "marvel-rivals" } },
-      select: { slug: true, name: true, role: true, imageUrl: true },
-    }),
-  ]);
-
+  const { guides, heroes } = await getGuidesIndex();
   const heroBySlug = new Map(heroes.map((h) => [h.slug, h]));
 
   const heroGuides = guides
@@ -79,7 +69,7 @@ export default async function GuidesIndexPage() {
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {heroGuides.map((guide) => {
+            {heroGuides.map((guide, idx) => {
               const heroSlug = heroSlugFromGuideSlug(guide.slug);
               const hero = heroSlug ? heroBySlug.get(heroSlug) : null;
               const heroName = hero?.name ?? guide.title.replace(/ Guide:.*/, "");
@@ -92,18 +82,20 @@ export default async function GuidesIndexPage() {
                 >
                   <div className="flex items-start gap-3">
                     {heroSlug ? (
-                      <Link href={heroHref!} className="shrink-0">
+                      <Link href={heroHref!} prefetch={false} className="shrink-0">
                         <HeroAvatar
                           name={heroName}
                           slug={heroSlug}
                           imageUrl={hero?.imageUrl}
                           size={64}
+                          priority={idx < 6}
                         />
                       </Link>
                     ) : null}
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/guides/${guide.slug}`}
+                        prefetch={false}
                         className="font-display text-lg text-white hover:text-[var(--neon-cyan)]"
                       >
                         {heroName}
@@ -119,6 +111,7 @@ export default async function GuidesIndexPage() {
                   <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
                     <Link
                       href={`/guides/${guide.slug}`}
+                      prefetch={false}
                       className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--neon-cyan)]"
                     >
                       Open guide →
@@ -126,6 +119,7 @@ export default async function GuidesIndexPage() {
                     {heroHref ? (
                       <Link
                         href={heroHref}
+                        prefetch={false}
                         className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--neon-cyan)]"
                       >
                         Hero page →

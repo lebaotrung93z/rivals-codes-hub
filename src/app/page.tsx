@@ -5,7 +5,7 @@ import { LandingHero } from "@/components/landing/LandingHero";
 import { prisma } from "@/lib/db";
 import { SITE_NAME } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} · Marvel Rivals Guides & Game Codes`,

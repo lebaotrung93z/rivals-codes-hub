@@ -9,7 +9,7 @@ import { heroSlugFromGuideSlug } from "@/lib/guides";
 import { getGuideBySlug } from "@/lib/queries";
 import { absoluteUrl, formatDate, roleLabel } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type Props = { params: Promise<{ slug: string }> };
 
