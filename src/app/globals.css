@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #00ffff;
+  --accent-2: #ff006e;
+  --accent-3: #22c55e;
+  --neon-blue: #0080ff;
+  --neon-pink: #ff006e;
+  --neon-cyan: #00ffff;
+  --neon-green: #22c55e;
+  --line: rgba(0, 255, 255, 0.18);
+  --surface: #12121a;
+  --surface-2: #1a1a2e;
+  --background: #05050a;
+  --foreground: #f8fafc;
+  --glow-cyan: 0 0 18px rgba(0, 255, 255, 0.55);
+  --glow-pink: 0 0 18px rgba(255, 0, 110, 0.55);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), ui-monospace, monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.neon-text-cyan {
+  color: var(--neon-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.neon-text-pink {
+  color: var(--neon-pink);
+  text-shadow: var(--glow-pink);
+}
+
+.neon-border {
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 0, 110, 0.12) inset,
+    0 0 24px rgba(0, 255, 255, 0.12);
+}
+
+.btn-neon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border: 1px solid var(--neon-cyan);
+  background: linear-gradient(135deg, rgba(0, 128, 255, 0.25), rgba(0, 255, 255, 0.08));
+  color: #fff;
+  padding: 0.85rem 1.4rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    background 200ms ease;
+  box-shadow: 0 0 22px rgba(0, 255, 255, 0.25);
+}
+
+.btn-neon:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 34px rgba(0, 255, 255, 0.45);
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.28), rgba(255, 0, 110, 0.18));
+}
+
+.btn-neon:focus-visible {
+  outline: 2px solid var(--neon-pink);
+  outline-offset: 3px;
+}
+
+.btn-neon-pink {
+  border-color: var(--neon-pink);
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.28), rgba(0, 128, 255, 0.1));
+  box-shadow: 0 0 22px rgba(255, 0, 110, 0.28);
+}
+
+.btn-neon-pink:hover {
+  box-shadow: 0 0 34px rgba(255, 0, 110, 0.5);
+}
+
+.scanlines {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 3px
+  );
+  opacity: 0.28;
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+
+.perspective-scene {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.float-3d {
+  transform-style: preserve-3d;
+  animation: floatY 5.5s ease-in-out infinite;
+}
+
+.float-3d-delayed {
+  animation-delay: -2.2s;
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 40px) rotateX(8deg) rotateY(-12deg);
+  }
+  50% {
+    transform: translate3d(0, -16px, 60px) rotateX(4deg) rotateY(-6deg);
+  }
+}
+
+@keyframes gridPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes neonPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(255, 0, 110, 0.55));
+  }
+}
+
+@keyframes glide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.carousel-track {
+  display: flex;
+  width: max-content;
+  animation: glide 28s linear infinite;
+}
+
+.carousel-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .float-3d,
+  .float-3d-delayed,
+  .carousel-track {
+    animation: none !important;
+  }
+
+  .btn-neon:hover {
+    transform: none;
+  }
+}
+
+.prose-guide h2 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.35rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--neon-cyan);
+}
+
+.prose-guide p,
+.prose-guide li {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.prose-guide ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.75rem 0;
+}
+
+.prose-guide a {
+  color: var(--neon-cyan);
+  text-decoration: underline;
+}

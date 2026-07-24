@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CodeStatus {
+  active
+  expired
+  unconfirmed
+}
+
+enum HeroRole {
+  vanguard
+  duelist
+  strategist
+}
+
+enum TierRank {
+  S
+  A
+  B
+  C
+  D
+}
+
+model Game {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  officialUrl String?
+  redeemUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  heroes      Hero[]
+  patches     Patch[]
+  codes       RedeemCode[]
+  guides      Guide[]
+  tierLists   TierList[]
+  tierEntries TierEntry[]
+}
+
+model Hero {
+  id          String     @id @default(cuid())
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  role        HeroRole
+  difficulty  Int        @default(2)
+  summary     String
+  abilities   Json
+  counters    String[]
+  tips        String[]
+  sourceUrl   String?
+  imageUrl    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tierEntries TierEntry[]
+
+  @@unique([gameId, slug])
+  @@index([role])
+}
+
+model TierList {
+  id          String      @id @default(cuid())
+  gameId      String
+  game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  title       String
+  mode        String      @default("Competitive")
+  summary     String
+  publishedAt DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  entries     TierEntry[]
+}
+
+model TierEntry {
+  id         String   @id @default(cuid())
+  tierListId String
+  tierList   TierList @relation(fields: [tierListId], references: [id], onDelete: Cascade)
+  gameId     String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  heroId     String
+  hero       Hero     @relation(fields: [heroId], references: [id], onDelete: Cascade)
+  tier       TierRank
+  note       String?
+  sortOrder  Int      @default(0)
+
+  @@unique([tierListId, heroId])
+  @@index([tier])
+}
+
+model Patch {
+  id            String   @id @default(cuid())
+  gameId        String
+  game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  slug          String
+  version       String
+  title         String
+  publishedAt   DateTime
+  sourceUrl     String?
+  sourceName    String?
+  rawBody       String?
+  summary       String
+  rankedImpact  String[]
+  changelog     Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([gameId, slug])
+  @@index([publishedAt])
+}
+
+model RedeemCode {
+  id           String     @id @default(cuid())
+  gameId       String
+  game         Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  code         String
+  rewards      String
+  status       CodeStatus @default(unconfirmed)
+  sourceUrl    String?
+  sourceName   String?
+  firstSeenAt  DateTime   @default(now())
+  lastCheckedAt DateTime  @default(now())
+  expiresAt    DateTime?
+  needsReview  Boolean    @default(true)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([gameId, code])
+  @@index([status])
+  @@index([lastCheckedAt])
+}
+
+enum GuideLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+model Guide {
+  id          String     @id @default(cuid())
+  gameId      String?
+  game        Game?      @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  slug        String     @unique
+  title       String
+  excerpt     String
+  body        String
+  level       GuideLevel @default(beginner)
+  sortOrder   Int        @default(0)
+  publishedAt DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([level, sortOrder])
+}
+
+model CrawlRun {
+  id          String   @id @default(cuid())
+  job         String
+  status      String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  itemsFound  Int      @default(0)
+  itemsUpserted Int    @default(0)
+  error       String?
+  meta        Json?
+}

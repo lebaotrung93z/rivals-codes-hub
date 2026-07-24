@@ -1,0 +1,69 @@
+{
+  "season": "9.0",
+  "mode": "Competitive",
+  "audience": "Diamond+",
+  "source": {
+    "name": "MarvelRivals.gg community meta pages",
+    "urls": [
+      "https://marvelrivals.gg/duelist-meta-tier-list-competitive/",
+      "https://marvelrivals.gg/strategist-meta-tier-list-competitive/",
+      "https://marvelrivals.gg/vanguard-meta-tier-list-competitive/",
+      "https://marvelrivals.gg/heroes/"
+    ],
+    "note": "Rankings adapted for editorial use. Prose, tips, and summaries are original—not republished site copy."
+  },
+  "tiersByRole": {
+    "duelist": {
+      "S": ["The Punisher", "Hela", "Black Panther", "Daredevil"],
+      "A": ["Magik", "Spider-Man", "Winter Soldier", "Star-Lord", "Namor", "Phoenix", "Elsa Bloodstone"],
+      "B": ["Human Torch", "Moon Knight", "Black Widow", "Iron Man", "Mister Fantastic", "Blade", "Wolverine", "Deadpool", "Black Cat", "Cyclops"],
+      "C": ["Storm", "Hawkeye", "Squirrel Girl", "Scarlet Witch", "Psylocke", "Iron Fist"]
+    },
+    "strategist": {
+      "S": ["Rocket Raccoon", "Cloak & Dagger", "Invisible Woman", "Gambit"],
+      "A": ["Mantis", "Luna Snow", "Jeff The Land Shark", "Jubilee"],
+      "B": ["Loki", "Adam Warlock", "White Fox"],
+      "C": ["Ultron"]
+    },
+    "vanguard": {
+      "S": ["Hulk", "Venom", "Thor"],
+      "A": ["Groot", "Peni Parker", "The Thing", "Devil Dinosaur"],
+      "B": ["Doctor Strange", "Magneto", "Emma Frost", "Angela"],
+      "C": ["Captain America", "Rogue"]
+    }
+  },
+  "nameAliases": {
+    "The Punisher": "punisher",
+    "Bruce Banner": "hulk",
+    "Hulk": "hulk",
+    "Cloak & Dagger": "cloak-dagger",
+    "Spider-man": "spider-man",
+    "Spider-Man": "spider-man",
+    "Star-lord": "star-lord",
+    "Star-Lord": "star-lord",
+    "Jeff The Land Shark": "jeff-the-land-shark",
+    "Mister Fantastic": "mister-fantastic",
+    "The Thing": "the-thing",
+    "Devil Dinosaur": "devil-dinosaur",
+    "Human Torch": "human-torch",
+    "Moon Knight": "moon-knight",
+    "Black Widow": "black-widow",
+    "Black Panther": "black-panther",
+    "Black Cat": "black-cat",
+    "Winter Soldier": "winter-soldier",
+    "Elsa Bloodstone": "elsa-bloodstone",
+    "Iron Man": "iron-man",
+    "Iron Fist": "iron-fist",
+    "Scarlet Witch": "scarlet-witch",
+    "Squirrel Girl": "squirrel-girl",
+    "Doctor Strange": "doctor-strange",
+    "Captain America": "captain-america",
+    "Peni Parker": "peni-parker",
+    "Emma Frost": "emma-frost",
+    "Invisible Woman": "invisible-woman",
+    "Luna Snow": "luna-snow",
+    "Adam Warlock": "adam-warlock",
+    "Rocket Raccoon": "rocket-raccoon",
+    "White Fox": "white-fox"
+  }
+}
