@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdUnit } from "@/components/AdSense";
 import { LastUpdated, PageHero } from "@/components/Content";
-import { getAllHeroes, getHeroBySlug } from "@/lib/queries";
+import { HeroAvatar } from "@/components/HeroAvatar";
+import { getHeroBySlug } from "@/lib/queries";
 import { absoluteUrl, roleLabel } from "@/lib/site";
 
 export const revalidate = 300;
+export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -30,12 +31,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  try {
-    const heroes = await getAllHeroes();
-    return heroes.map((h) => ({ slug: h.slug }));
-  } catch {
-    return [];
-  }
+  // On-demand ISR — avoid prerendering all heroes at build (Neon pool limits).
+  return [];
 }
 
 export default async function HeroPage({ params }: Props) {
@@ -79,16 +76,13 @@ export default async function HeroPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
       <div className="mb-6 flex flex-wrap items-start gap-5">
-        <div className="relative h-28 w-28 shrink-0 overflow-hidden border border-[rgba(0,255,255,0.4)]">
-          <Image
-            src={image}
-            alt={`${hero.name} avatar`}
-            fill
-            sizes="112px"
-            className="object-cover"
-            priority
-          />
-        </div>
+        <HeroAvatar
+          name={hero.name}
+          slug={hero.slug}
+          imageUrl={hero.imageUrl}
+          size={112}
+          priority
+        />
         <div className="min-w-0 flex-1">
           <PageHero
             eyebrow={`${roleLabel(hero.role)}${tier ? ` · ${tier}-tier` : ""}`}

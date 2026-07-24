@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdUnit } from "@/components/AdSense";
 import { LastUpdated, PageHero } from "@/components/Content";
-import { getPatchBySlug, getPatches } from "@/lib/queries";
+import { getPatchBySlug } from "@/lib/queries";
 import { absoluteUrl, formatDate } from "@/lib/site";
 
 export const revalidate = 300;
@@ -27,12 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  try {
-    const patches = await getPatches();
-    return patches.map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export default async function PatchDetailPage({ params }: Props) {
